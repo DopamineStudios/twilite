@@ -36,8 +36,6 @@ formatter = logging.Formatter(log_format, datefmt=date_format)
 handler.setFormatter(formatter)
 
 intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
 intents.dm_messages = True
 
 allowed_mentions = discord.AllowedMentions(replied_user=False)
