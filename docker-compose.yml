@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: twilite-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./model:/models
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: twilite-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    volumes:
+      - .:/workspace
+    environment:
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-smollm2}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for Ollama server..."
+        until curl -s http://ollama:11434/api/tags; do sleep 1; done
+        if echo "$OLLAMA_MODEL" | grep -q "qwen"; then
+          MODEL_NAME="qwen2.5"
+          MODELFILE="/workspace/Modelfile.qwen2.5"
+        else
+          MODEL_NAME="smollm2"
+          MODELFILE="/workspace/Modelfile.smollm2"
+        fi
+        echo "Creating custom Twilite model '$$MODEL_NAME' using $$MODELFILE..."
+        ollama create "$$MODEL_NAME" -f "$$MODELFILE"
+        echo "Model created successfully!"
+
+  bot:
+    build: .
+    container_name: twilite-bot
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-smollm2}
+      - LOGGING_DEBUG_MODE=${LOGGING_DEBUG_MODE}
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
