@@ -1,4 +1,4 @@
 discord.py
 python-dotenv
-discord-beacon~=4.5.0
+discord-beacon
 aiohttp
