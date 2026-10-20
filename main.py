@@ -50,6 +50,25 @@ async def on_shard_ready(shard_id: int):
     )
 bot = BeaconAutoShardedBot(command_prefix="!", intents=intents, minimal_caching=True, allowed_mentions=allowed_mentions, accent_colour=discord.Colour(0xFFFFFF), on_shard_ready_callback=on_shard_ready)
 
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Twilite Bot is running!")
+    def log_message(self, format, *args):
+        pass
+
+def run_health_server():
+    port = int(os.getenv("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    print(f"Health check server running on port {port}")
+    server.serve_forever()
+
+threading.Thread(target=run_health_server, daemon=True).start()
+
 if __name__ == "__main__":
     async def main_async():
         try:
